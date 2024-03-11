@@ -90,7 +90,6 @@ int main()
             memset_s(words[i], strlen(words[i]), 0, strlen(words[i]));
 #else
             void *volatile ptr = words[i];
-
             memset(ptr, 0, strlen(words[i]));
 #endif
             free(words[i]);
