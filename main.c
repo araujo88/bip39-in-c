@@ -9,8 +9,12 @@
 
 int RAND_bytes_secure(unsigned char *buf, int num)
 {
+#ifdef __STDC_LIB_EXT1__
+    memset_s(buf, num, 0, num);
+#else
     void *volatile ptr = buf;
     memset(ptr, 0, num); // Zero out the buffer
+#endif
     int final_ret = 1;
     while (num > 0)
     {
@@ -82,8 +86,13 @@ int main()
     {
         if (words[i] != NULL)
         {
+#ifdef __STDC_LIB_EXT1__
+            memset_s(words[i], strlen(words[i]), 0, strlen(words[i]));
+#else
             void *volatile ptr = words[i];
+
             memset(ptr, 0, strlen(words[i]));
+#endif
             free(words[i]);
             words[i] = NULL; // Avoid dangling pointer by setting it to NULL
         }
