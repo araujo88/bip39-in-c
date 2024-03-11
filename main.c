@@ -7,6 +7,35 @@
 #define WORD_COUNT 2048
 #define SEQUENCE_LENGTH 12
 
+void check_system_entropy()
+{
+    FILE *fp;
+    int entropy_avail;
+
+    fp = fopen("/proc/sys/kernel/random/entropy_avail", "r");
+    if (fp == NULL)
+    {
+        perror("Failed to open entropy_avail");
+        exit(EXIT_FAILURE);
+    }
+
+    if (fscanf(fp, "%d", &entropy_avail) != 1)
+    {
+        perror("Failed to read entropy_avail");
+        fclose(fp);
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Available entropy: %d bits\n", entropy_avail);
+    fclose(fp);
+
+    if (entropy_avail < 256)
+    {
+        fprintf(stderr, "The system does not have enough entropy\n");
+        exit(EXIT_FAILURE);
+    }
+}
+
 int RAND_bytes_secure(unsigned char *buf, int num)
 {
 #ifdef __STDC_LIB_EXT1__
@@ -41,7 +70,7 @@ unsigned int secure_rand(unsigned int max)
         if (RAND_bytes_secure((unsigned char *)&rand_val, sizeof(rand_val)) != 1)
         {
             fprintf(stderr, "Error generating secure random number\n");
-            exit(1); // In a real application, you might want to handle this more gracefully
+            exit(EXIT_FAILURE); // In a real application, you might want to handle this more gracefully
         }
     } while (rand_val >= (UINT_MAX - (UINT_MAX % WORD_COUNT)));
     return rand_val % max;
@@ -54,12 +83,14 @@ int main()
     FILE *file;
     int i;
 
+    check_system_entropy();
+
     // Open the file
     file = fopen("english.txt", "r");
     if (file == NULL)
     {
         printf("Error opening file\n");
-        return 1;
+        return EXIT_FAILURE;
     }
 
     // Read words from file into array
@@ -67,6 +98,11 @@ int main()
     {
         // Allocate memory for the word, plus null terminator
         words[i] = (char *)malloc(strlen(buffer) + 1);
+        if (words[i] == NULL)
+        {
+            fprintf(stderr, "Memory allocation failed\n");
+            return EXIT_FAILURE;
+        }
         // Copy the word from buffer, removing newline if present
         strcpy(words[i], buffer);
         words[i][strcspn(words[i], "\n")] = 0; // Remove newline character
